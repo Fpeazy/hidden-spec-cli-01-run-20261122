@@ -531,13 +531,14 @@ function v4aDeleteEdit(path: string): Edit {
 
 function v4aUpdateEdit(path: string, moveTo: string | null, chunks: V4AChunk[], strict: boolean, moves: Array<[string, string]>): Edit {
   return (tree) => {
+    // SPEC section 10: every path an edit names is checked for safety before
+    // anything else about it, so the move target's safety is checked before
+    // the source's existence (a missing source must not mask an unsafe target).
     if (!safe(path)) throw new Fail('unsafe', path);
+    if (moveTo !== null && !safe(moveTo)) throw new Fail('unsafe', moveTo);
     const before = tree.get(path);
     if (before === null) throw new Fail('missing', path);
-    if (moveTo !== null) {
-      if (!safe(moveTo)) throw new Fail('unsafe', moveTo);
-      if (tree.get(moveTo) !== null) throw new Fail('exists', moveTo);
-    }
+    if (moveTo !== null && tree.get(moveTo) !== null) throw new Fail('exists', moveTo);
     const model = splitFile(before);
     applyV4AChunks(model, chunks, strict, path);
     if (moveTo !== null) {
